@@ -1,0 +1,6 @@
+# 油罐车计量偏差校正建模 — 依赖清单
+# 安装：pip install -r requirements.txt
+pandas>=1.5
+numpy>=1.23
+scipy>=1.9
+openpyxl>=3.0

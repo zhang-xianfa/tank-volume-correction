@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 数据文件（真实装卸数据，未随仓库提供）
+data/
+
+# 输出产物
+output/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

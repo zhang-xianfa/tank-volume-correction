@@ -19,6 +19,7 @@ from __future__ import annotations
 import time
 import warnings
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -313,7 +314,57 @@ def run_pipeline(excel_file: str, result_file: str) -> dict[str, list[dict[str, 
         all_errors[car_id] = pipeline.car_errors
 
     _print_overall_statistics(all_errors, all_results)
+    _export_summary_csv(all_errors, result_file)
     return all_results
+
+
+#: 汇总表的输出文件名
+SUMMARY_FILENAME = "summary.csv"
+
+#: 仓库内保存结果的目录（随仓库提交，便于复核 README 里的数字）
+RESULTS_DIR = Path(__file__).resolve().parents[1] / "results"
+
+
+def _export_summary_csv(
+    all_errors: dict[str, list[float]], result_file: str
+) -> None:
+    """把逐车误差与整体误差落盘成 CSV，方便引用与复现。
+
+    会写两份：结果 Excel 同目录一份（本次运行产物），
+    仓库 ``results/`` 下一份（随代码提交，供他人复核）。
+    最后一行是全部车辆的整体统计。
+    """
+    rows = []
+    for car_id, errors in all_errors.items():
+        if not errors:
+            continue
+        avg = float(np.mean(errors))
+        rows.append({
+            "车辆编号": car_id,
+            "有效记录数": len(errors),
+            "平均相对误差": avg,
+            "平均相对误差(%)": round(avg * 100, 4),
+        })
+
+    if rows:
+        total = [e for errors in all_errors.values() for e in errors]
+        overall = float(np.mean(total))
+        rows.append({
+            "车辆编号": "全部",
+            "有效记录数": len(total),
+            "平均相对误差": overall,
+            "平均相对误差(%)": round(overall * 100, 4),
+        })
+
+    df_summary = pd.DataFrame(rows)
+    summary_paths = [
+        Path(result_file).resolve().parent / SUMMARY_FILENAME,
+        RESULTS_DIR / SUMMARY_FILENAME,
+    ]
+    for summary_path in summary_paths:
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        df_summary.to_csv(summary_path, index=False, encoding="utf-8-sig")
+        print(f"\n汇总指标已保存至：{summary_path}")
 
 
 def _print_overall_statistics(
